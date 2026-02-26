@@ -13,7 +13,25 @@ The final output is a 15-second MCAP that can be opened directly in Foxglove. It
 
 ## Quick run
 
-I developed this in a `conda` environment named `sensorsim` (Python 3.11). Main dependencies are `numpy`, `scipy`, `numba`, `open3d`, `opencv-python`, `plyfile`, `pyyaml`, and `mcap-ros2` / `mcap_ros2`.
+I developed this in a `conda` environment named `sensorsim` (**Python 3.11**). Main dependencies are `numpy`, `scipy`, `numba`, `open3d`, `opencv-python`, `plyfile`, `pyyaml`, and `mcap-ros2` / `mcap_ros2`.
+
+Environment setup (recommended, conda):
+
+```powershell
+conda env create -f environment.yml
+```
+
+If the env already exists and you want to refresh packages:
+
+```powershell
+conda env update -f environment.yml --prune
+```
+
+Pip fallback (Python 3.11 recommended):
+
+```powershell
+python -m pip install -r requirements.txt
+```
 
 Put the Toronto-3D files under `data/raw/Toronto_3D/` (at minimum `L002.ply`, `Mavericks_classes_9.txt`, `Colors.xml`), then run:
 
@@ -29,6 +47,46 @@ foxglove-studio data/output/sim_output_submission_15s_compressed_20260226.mcap
 ```
 
 Foxglove notes: use `/camera/image_raw/compressed` for the image panel. For LiDAR, use `/velodyne_points` and set `Color By = intensity`.
+
+## Data / output layout (reviewer quick reference)
+
+Expected layout before preprocessing:
+
+```text
+data/
+  raw/
+    Toronto_3D/
+      L002.ply
+      Mavericks_classes_9.txt
+      Colors.xml
+```
+
+After running `scripts/preprocess.py` (and car asset build pipeline if used), `data/processed/` contains the runtime-ready assets, e.g.:
+
+```text
+data/
+  processed/
+    metadata.json
+    scene_static.ply
+    scene_labels.npy
+    scene_intensity.npy
+    static_cars_fullres.npz
+    agent_assets/
+      asset_catalog.json
+      *.ply
+      *_intensity.npy
+      *_meta.json
+```
+
+Final simulation output MCAP:
+
+```text
+data/
+  output/
+    sim_output_submission_15s_compressed_20260226.mcap
+```
+
+Note: if `run_sim.py` is run without `--output`, it writes to the config data directory (`data/processed/sim_output.mcap` in the current setup).
 
 ## Configuration (sim.yaml)
 
