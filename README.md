@@ -120,19 +120,19 @@ I first made the simulation correct, then optimized it enough to iterate comfort
 
 **Optimization journey** - each stage reduced runtime at the same output quality (all normalized to 15s / 150 frames):
 
-![Optimization journey](imgs/perf_optimization_journey.png)
+<img src="imgs/perf_optimization_journey.png" alt="Optimization journey" width="666" height="365" />
 
 The baseline pure-NumPy renderer took ~10.3 min for a 15s simulation. Numba JIT kernels for LiDAR scatter-min and camera splatting brought it down to ~4.1 min (2.5x). Adding KD-tree spatial culling with a `SpatialCullCache` in `sim/scene_compose.py` reached ~2.9 min (3.6x total). The cache queries a superset from the KD-tree with a margin, caches the indices, and filters by squared XY distance each frame, only refreshing when ego moves beyond a threshold or the cache ages out. This avoids expensive repeated `query_ball_point` calls on the full static scene. The final Gaussian camera + 2x supersampling upgrade added rendering cost back, trading speed for significantly better image quality at ~4.7 min.
 
 **Runtime breakdown** of the final submission run (283s):
 
-![Runtime breakdown](imgs/perf_runtime_breakdown.png)
+<img src="imgs/perf_runtime_breakdown.png" alt="Runtime breakdown" width="964" height="403" />
 
 Camera rendering dominates at 60% (170s), with Gaussian color accumulation alone at 90s. Scene composition (KD-tree culling + NumPy array indexing) is the second cost at 25%. LiDAR is relatively cheap at 9% after the Numba scatter-min optimization. MCAP I/O including PNG compression is only 3%.
 
 **Estimated scaling** - how each optimization layer scales with scene size:
 
-![Scaling curves](imgs/perf_scaling_curves.png)
+<img src="imgs/perf_scaling_curves.png" alt="Scaling curves" width="741" height="440" />
 
 At the current scene size (5M points) all optimizations are relatively close. But the curves diverge sharply at larger scenes: at 50M points, pure NumPy would take ~2 hours, Numba alone ~40 min, while KD-tree culling + `SpatialCullCache` keeps it under ~12 min. The key insight is that KD-tree culling changes the effective complexity: instead of processing all N points every frame, only the local subset within the cull radius is touched. The cache amplifies this by avoiding repeated tree queries on consecutive frames where ego hasn't moved far. These estimates are extrapolated from the measured 5M data point using the algorithmic complexity of each layer (O(N log N) for baseline sorting, O(N) for Numba, sublinear for culled local subsets).
 
