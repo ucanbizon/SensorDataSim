@@ -3,7 +3,8 @@
 Offline sensor simulation on Toronto-3D point cloud data (`L002`), exported as an MCAP file for Foxglove. The output contains a VLP-16 style LiDAR stream, a pinhole RGB camera stream, and a TF tree, with two dynamic cars added to the static scene.
 
 Final demo video (LiDAR + camera side-by-side):
-- https://www.youtube.com/watch?v=cVbzTud8lWQ
+
+[![Demo video](https://img.youtube.com/vi/cVbzTud8lWQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=cVbzTud8lWQ)
 
 ## What this project does
 
@@ -13,80 +14,31 @@ The final output is a 15-second MCAP that can be opened directly in Foxglove. It
 
 ## Quick run
 
-I developed this in a `conda` environment named `sensorsim` (**Python 3.11**). Main dependencies are `numpy`, `scipy`, `numba`, `open3d`, `opencv-python`, `plyfile`, `pyyaml`, and `mcap-ros2` / `mcap_ros2`.
-
-Environment setup (recommended, conda):
+**Environment setup** (Python 3.11, conda):
 
 ```powershell
-conda env create -f environment.yml
+conda create -n sensorsim python=3.11 numpy scipy numba open3d opencv-python-headless plyfile pyyaml -c conda-forge
+conda activate sensorsim
+pip install mcap mcap-ros2-support
 ```
 
-If the env already exists and you want to refresh packages:
+**Data**: download the preprocessed data folder from [Google Drive](https://drive.google.com/file/d/13fMaM-V49mz2RXGd4yEihV_EWt5AnqYq/view?usp=sharing) and extract it to `data/processed/`. This contains the voxel-downsampled static scene, semantic labels, intensity arrays, a full-resolution static-car subset, dynamic car assets, and preprocessing metadata. If you want to run preprocessing from scratch, put the Toronto-3D files under `data/raw/Toronto_3D/` (at minimum `L002.ply`, `Mavericks_classes_9.txt`, `Colors.xml` from [Toronto-3D](https://github.com/WeikaiTan/Toronto-3D)) and run `conda run -n sensorsim python scripts/preprocess.py`.
+
+**Run the simulation**:
 
 ```powershell
-conda env update -f environment.yml --prune
+conda run -n sensorsim python run_sim.py
 ```
 
-Pip fallback (Python 3.11 recommended):
+The output MCAP is written to `data/processed/` by default. Use `--output path/to/file.mcap` to override.
+
+**Open in Foxglove**:
 
 ```powershell
-python -m pip install -r requirements.txt
-```
-
-Put the Toronto-3D files under `data/raw/Toronto_3D/` (at minimum `L002.ply`, `Mavericks_classes_9.txt`, `Colors.xml`), then run:
-
-```powershell
-conda run -n sensorsim python scripts/preprocess.py
-conda run -n sensorsim python run_sim.py --output data/output/sim_output_submission_15s_compressed_20260226.mcap
-```
-
-Open in Foxglove:
-
-```powershell
-foxglove-studio data/output/sim_output_submission_15s_compressed_20260226.mcap
+foxglove-studio data/processed/sim_output.mcap
 ```
 
 Foxglove notes: use `/camera/image_raw/compressed` for the image panel. For LiDAR, use `/velodyne_points` and set `Color By = intensity`.
-
-## Data / output layout (reviewer quick reference)
-
-Expected layout before preprocessing:
-
-```text
-data/
-  raw/
-    Toronto_3D/
-      L002.ply
-      Mavericks_classes_9.txt
-      Colors.xml
-```
-
-After running `scripts/preprocess.py` (and car asset build pipeline if used), `data/processed/` contains the runtime-ready assets, e.g.:
-
-```text
-data/
-  processed/
-    metadata.json
-    scene_static.ply
-    scene_labels.npy
-    scene_intensity.npy
-    static_cars_fullres.npz
-    agent_assets/
-      asset_catalog.json
-      *.ply
-      *_intensity.npy
-      *_meta.json
-```
-
-Final simulation output MCAP:
-
-```text
-data/
-  output/
-    sim_output_submission_15s_compressed_20260226.mcap
-```
-
-Note: if `run_sim.py` is run without `--output`, it writes to the config data directory (`data/processed/sim_output.mcap` in the current setup).
 
 ## Configuration (sim.yaml)
 
@@ -96,7 +48,21 @@ Waypoints in the YAML are stored as `[Y, X]` (not `[X, Y]`). Sensor mounts are a
 
 ## Preprocessing (Toronto-3D L002)
 
-The preprocessing script (`scripts/preprocess.py`) builds a runtime-friendly static scene from the raw Toronto-3D point cloud. In practical terms: it loads the tile and semantic labels, crops a road-centered ROI, fits a local ground plane, extracts cars, removes cars from the static background scene, and voxel-downsamples the remaining static geometry.
+The preprocessing script (`scripts/preprocess.py`) builds a runtime-friendly static scene from the raw Toronto-3D point cloud. It runs a 13-step pipeline:
+
+1. Integrity checks and SHA256 verification
+2. Class map parsing
+3. Field loading and NaN/Inf audit
+4. Road-centered ROI cropping
+5. Coordinate normalization to a local origin
+6. RANSAC ground plane fitting
+7. Car extraction (DBSCAN clustering + PCA orientation + geometric plausibility checks)
+8. Static scene construction by provenance (removing the extracted cars)
+9. Statistical outlier removal
+10. Voxel downsampling with per-voxel label/intensity aggregation
+11. Scene coverage verification
+12. Output serialization with reload checks
+13. Final QC report
 
 One important design choice is that I do not treat cars the same way as the rest of the scene. MLS cars are already sparse and often incomplete. If I downsample them aggressively, they look much worse in the camera view. So I keep a downsampled global static scene for performance and a separate full-resolution static-car subset for the camera renderer.
 
@@ -114,17 +80,17 @@ The final scene uses two dynamic cars:
 
 Trajectories are spline-based (`sim/trajectory.py`). Waypoints are fit with cubic splines, parameterized by arc length, and then evaluated at constant speed (`s(t) = v * t`). Yaw is computed from the spline tangent.
 
-A single global ground plane was not enough for vehicle Z placement. It made cars look sunk into the road in some segments and made the ego camera look too low. To fix this, I added a local road-height model (`sim/road_surface.py`) using a KD-tree over road-labeled points (`Ground` + `Road_markings`), with robust estimation (median + MAD clipping + Gaussian distance weighting).
+A single global ground plane was not enough for vehicle Z placement. It made cars look sunk into the road in some segments and made the ego camera look too low. To fix this, I added a local road-height model (`sim/road_surface.py`) using a KD-tree over road-labeled points (`Ground` + `Road_markings`), with robust estimation (median + MAD clipping + Gaussian distance weighting). This approach works on any road geometry, not just flat roads. The L002 scene has a slight slope, and the model handles it correctly by querying local elevation at each position rather than assuming a single plane.
 
 I also smooth the road-height profile along the trajectory and estimate pitch from local road grade. This keeps vehicles visually attached to the road while avoiding camera shake from raw point noise.
 
-## Simulation design (why these methods)
+## Simulation design
 
 The simulator is event-driven (`run_sim.py` + `sim/timeline.py`) using integer nanosecond ticks to avoid timing drift between TF, LiDAR, and camera. At each timestamp, the code composes the scene once (static background + full-res static cars + dynamic agents) and reuses it for whichever sensors fire on that tick.
 
-For LiDAR, I use a VLP-16 style "scatter-min" renderer (`sim/lidar.py` + `sim/numba_kernels.py`). Instead of ray casting, each point is transformed into LiDAR frame, assigned to a ring/azimuth cell, and the nearest point wins for that cell. This matches the structure of a spinning LiDAR scan and works directly on point cloud input without meshing.
+For LiDAR, I use a VLP-16 style "scatter-min" renderer (`sim/lidar.py` + `sim/numba_kernels.py`). Instead of ray casting or mesh-based ray tracing, each point is transformed into LiDAR frame, assigned to a ring/azimuth cell, and the nearest point per cell wins. Ray casting would require meshing the point cloud first, which introduces artifacts on sparse MLS data and adds significant complexity. The scatter-min approach operates directly on point cloud input, naturally produces the (ring, azimuth) structure of a real spinning LiDAR, and is straightforward to accelerate with Numba. Dynamic car points are painted with a bright intensity value so they appear red in Foxglove's default intensity colormap, making them immediately distinguishable from the static scene.
 
-For the camera, I use a pinhole point-splat renderer (`sim/camera.py`) rather than ray casting or voxelization. The source is already a colored point cloud, so splatting is a good fit and avoids mesh generation artifacts.
+For the camera, I use a pinhole point-splat renderer (`sim/camera.py`) rather than ray casting or voxelization. Ray casting has the same meshing problem as LiDAR. Voxelization would quantize colors and lose detail at the resolution of MLS data. Point splatting works directly on colored points: project, splat with a small radius, blend. No intermediate representation needed. It also naturally extends to depth-aware Gaussian weighting and adaptive radii (see below).
 
 ## Camera image improvements
 
@@ -133,33 +99,67 @@ The final camera renderer is not the original hard-circle splat renderer. It now
 - Pass A builds a front depth buffer (nearest depth per pixel)
 - Pass B accumulates Gaussian-weighted color only near that front surface
 
-This reduces harsh splat edges and background bleed-through. I also added adaptive splat radii, a density-based radius boost in sparse regions, hybrid rendering for full-resolution static cars, and `2x` supersampling followed by downsampling (`INTER_AREA`).
+This reduces harsh splat edges and background bleed-through. On top of the Gaussian pipeline, several other improvements contribute to the final image quality:
+
+- **Adaptive splat radii**: each point's radius scales with depth (larger up close, smaller at distance), so near objects don't show gaps and far objects don't smear
+- **Density-based radius boost**: in sparse regions (measured per coarse tile), the splat radius is increased to fill holes without affecting dense areas
+- **Hybrid full-res static cars**: the static-car subset is rendered at original point cloud resolution (not voxel-downsampled) so parked cars retain detail in the camera view
+- **`2x` supersampling**: the renderer works at double internal resolution then downsamples with `INTER_AREA`, which smooths splat boundaries and reduces aliasing
 
 Before/after camera comparison video (old renderer vs Gaussian + supersampling):
-- https://www.youtube.com/watch?v=CS0ytRj9hzo
+
+[![Camera comparison](https://img.youtube.com/vi/CS0ytRj9hzo/maxresdefault.jpg)](https://www.youtube.com/watch?v=CS0ytRj9hzo)
 
 ## Performance and optimization
 
-I first made the simulation correct, then optimized it enough to iterate comfortably. The biggest speedups came from Numba kernels (`sim/numba_kernels.py`) for LiDAR scatter-min and camera projection/splatting. I also use KD-tree culling plus a small cull cache in `sim/scene_compose.py` to avoid re-querying the static scene from scratch every frame, and I reuse LiDAR/camera buffers to reduce allocation churn.
+I first made the simulation correct, then optimized it enough to iterate comfortably. All profiling was done with `cProfile` on an i7-11800H (8 cores, 16 GB RAM).
 
-The final quality-focused submission run (Gaussian camera + 2x supersampling + compressed camera topic) takes about `5.8 min` for a `15s` simulation on my machine. A profiled run (`cProfile`) was used for hotspot analysis only. In the current design, camera Gaussian accumulation is the main runtime cost, followed by scene composition/culling. LiDAR is relatively cheap after the Numba scatter-min optimization.
+**Optimization journey** - each stage reduced runtime at the same output quality (all normalized to 15s / 150 frames):
+
+![Optimization journey](docs/perf_optimization_journey.png)
+
+The baseline pure-NumPy renderer took ~10.3 min for a 15s simulation. Numba JIT kernels for LiDAR scatter-min and camera splatting brought it down to ~4.1 min (2.5x). Adding KD-tree spatial culling with a `SpatialCullCache` in `sim/scene_compose.py` reached ~2.9 min (3.6x total). The cache queries a superset from the KD-tree with a margin, caches the indices, and filters by squared XY distance each frame, only refreshing when ego moves beyond a threshold or the cache ages out. This avoids expensive repeated `query_ball_point` calls on the full static scene. The final Gaussian camera + 2x supersampling upgrade added rendering cost back, trading speed for significantly better image quality at ~4.7 min.
+
+**Runtime breakdown** of the final submission run (283s):
+
+![Runtime breakdown](docs/perf_runtime_breakdown.png)
+
+Camera rendering dominates at 60% (170s), with Gaussian color accumulation alone at 90s. Scene composition (KD-tree culling + NumPy array indexing) is the second cost at 25%. LiDAR is relatively cheap at 9% after the Numba scatter-min optimization. MCAP I/O including PNG compression is only 3%.
+
+**Estimated scaling** - how each optimization layer scales with scene size:
+
+![Scaling curves](docs/perf_scaling_curves.png)
+
+At the current scene size (5M points) all optimizations are relatively close. But the curves diverge sharply at larger scenes: at 50M points, pure NumPy would take ~2 hours, Numba alone ~40 min, while KD-tree culling + `SpatialCullCache` keeps it under ~12 min. The key insight is that KD-tree culling changes the effective complexity: instead of processing all N points every frame, only the local subset within the cull radius is touched. The cache amplifies this by avoiding repeated tree queries on consecutive frames where ego hasn't moved far. These estimates are extrapolated from the measured 5M data point using the algorithmic complexity of each layer (O(N log N) for baseline sorting, O(N) for Numba, sublinear for culled local subsets).
 
 I did not implement multithreading or a GPU renderer. For this project, CPU + Numba already reached a usable runtime, and GPU/parallel paths would add a lot of complexity (atomics/conflict handling for splats, data transfer/setup, portability issues for reviewers).
 
 ## Output and Foxglove playback
 
-The final compressed-camera MCAP (`data/output/sim_output_submission_15s_compressed_20260226.mcap`) contains:
+The output MCAP contains:
 - `/tf_static`
 - `/tf`
 - `/velodyne_points`
 - `/camera/image_raw/compressed`
 - `/camera/camera_info`
 
-LiDAR points are exported as ROS `PointCloud2` with `x, y, z, intensity, ring` (plus padding). I remap intensity for visualization so static points stay dark and dynamic cars are bright. In Foxglove this makes the moving cars stand out immediately when using `Color By = intensity`.
+LiDAR points are exported as ROS `PointCloud2` with `x, y, z, intensity, ring` (plus padding). I remap intensity for visualization: static/background points are compressed into a darker band, and dynamic car points are assigned a bright constant value (`255`). In Foxglove with `Color By = intensity`, this paints the moving cars in a distinct bright color (red in the default colormap), making them immediately visible against the static scene.
 
-## Code structure (short version)
+## Code structure
 
-The core runtime lives in `sim/` (`camera.py`, `lidar.py`, `scene_compose.py`, `trajectory.py`, `tf_tree.py`, `timeline.py`, `mcap_writer.py`). `run_sim.py` is the orchestration entry point. The `scripts/` folder contains preprocessing and helper tools (preprocess, car asset extraction, ego fitting, agent planning, video generation).
+The runtime pipeline is: load assets -> build trajectories -> for each tick: compose scene -> render LiDAR/camera -> write MCAP.
+
+The core runtime lives in `sim/`:
+- `camera.py` - two-pass Gaussian splat camera renderer
+- `lidar.py` - VLP-16 scatter-min LiDAR renderer
+- `scene_compose.py` - per-frame scene composition with spatial culling
+- `trajectory.py` - spline-based trajectory with road-height tracking
+- `mcap_writer.py` - MCAP serialization (ROS 2 message dicts)
+- `tf_tree.py`, `timeline.py` - TF snapshot management and event scheduling
+- `numba_kernels.py` - JIT-compiled kernels for LiDAR and camera hot loops
+- `assets.py`, `config.py`, `transforms.py`, `road_surface.py` - data loading, config, geometry utilities
+
+`run_sim.py` is the orchestration entry point. The `scripts/` folder contains preprocessing and helper tools (preprocess, car asset extraction, ego fitting, agent planning, video generation).
 
 ## Limitations
 
