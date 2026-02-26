@@ -4,7 +4,9 @@ Offline sensor simulation on Toronto-3D point cloud data (`L002`), exported as a
 
 Final demo video (LiDAR + camera side-by-side):
 
-[![Demo video](https://img.youtube.com/vi/cVbzTud8lWQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=cVbzTud8lWQ)
+<a href="https://www.youtube.com/watch?v=cVbzTud8lWQ">
+  <img src="https://img.youtube.com/vi/cVbzTud8lWQ/maxresdefault.jpg" alt="Demo video" width="560" />
+</a>
 
 ## What this project does
 
@@ -108,7 +110,9 @@ This reduces harsh splat edges and background bleed-through. On top of the Gauss
 
 Before/after camera comparison video (old renderer vs Gaussian + supersampling):
 
-[![Camera comparison](https://img.youtube.com/vi/CS0ytRj9hzo/maxresdefault.jpg)](https://www.youtube.com/watch?v=CS0ytRj9hzo)
+<a href="https://www.youtube.com/watch?v=CS0ytRj9hzo">
+  <img src="https://img.youtube.com/vi/CS0ytRj9hzo/maxresdefault.jpg" alt="Camera comparison" width="560" />
+</a>
 
 ## Performance and optimization
 
