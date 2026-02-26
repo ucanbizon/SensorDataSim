@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Local editor/IDE
+.vscode/
+.idea/
+.claude/
+
+# Local virtual envs / conda env dirs (if created inside repo)
+.venv/
+venv/
+env/
+
+# Generated data, raw datasets, and debug artifacts
+# Keep the data/ folder structure in git, but ignore all data files.
+data/**
+!data/
+!data/**/
+!data/.gitkeep
+!data/**/.gitkeep
+
+# Backup / temp files
+*.bak
+*.tmp
+*.log
+yapistir.txt

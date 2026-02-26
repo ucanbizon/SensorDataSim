@@ -1,0 +1,53 @@
+﻿{
+  "layout": {
+    "direction": "row",
+    "first": "3D!avride-3d",
+    "second": {
+      "direction": "column",
+      "first": "ImageViewPanel!camera-main",
+      "second": "RawMessages!raw-main"
+    }
+  },
+  "configById": {
+    "3D!avride-3d": {
+      "followTf": "base_link",
+      "followMode": "follow-pose",
+      "cameraState": {
+        "perspective": true,
+        "distance": 35,
+        "targetOffset": [0, 0, 0]
+      },
+      "topics": {
+        "/velodyne_points": {
+          "visible": true,
+          "pointSize": 2,
+          "colorBy": "ring"
+        }
+      },
+      "scene": {
+        "transforms": {
+          "frame": "map",
+          "showLabel": false
+        }
+      }
+    },
+    "ImageViewPanel!camera-main": {
+      "cameraTopic": "/camera/image_raw",
+      "enabledMarkerTopics": []
+    },
+    "RawMessages!raw-main": {
+      "topics": [
+        "/tf",
+        "/tf_static",
+        "/velodyne_points",
+        "/camera/image_raw",
+        "/camera/camera_info"
+      ]
+    }
+  },
+  "globalVariables": [],
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  }
+}

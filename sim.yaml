@@ -1,0 +1,99 @@
+timeline:
+  duration_s: 15.0
+  lidar_rate_hz: 10.0
+  camera_rate_hz: 10.0
+  tf_rate_hz: 50.0
+ego:
+  speed_mps: 10.0
+  waypoints:
+  - - 118.79369582634543
+    - -39.89744135606265
+  - - 78.77819315177274
+    - -26.07076583714093
+  - - 38.28402643980524
+    - -13.870681788460328
+  - - -1.460596324834114
+    - -1.6202875810425772
+  - - -42.260292168685886
+    - 9.54155034716926
+  - - -85.29728271549112
+    - 13.100635204466862
+sensor_mounts:
+  velodyne:
+    x: 0.0
+    y: 0.0
+    z: 1.8
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+  camera_link:
+    x: 0.5
+    y: 0.0
+    z: 1.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+camera_intrinsics:
+  width: 1280
+  height: 720
+  fx: 600.0
+  fy: 600.0
+  cx: 640.0
+  cy: 360.0
+lidar_render:
+  min_range_m: 1.0
+  max_range_m: 100.0
+camera_render:
+  min_range_m: 0.5
+  max_range_m: 100.0
+  splat_radius_px: 2
+  image_format: png
+  car_splat_radius_px: 3
+  supersample: 2
+frame_names:
+  fixed: map
+  ego_body: base_link
+  lidar: velodyne
+  camera_body: camera_link
+  camera_optical: camera_optical_frame
+data_dir: data/processed
+agents:
+  oncoming:
+    enabled: true
+    frame_id: agent_oncoming
+    asset_name: l003_car_cluster008_q9.400_sym_filled
+    speed_mps: 9.0
+    start_delay_s: 0.5
+    waypoints:
+    - - -86.4265012009947
+      - 9.263335944310414
+    - - -43.38951065418945
+      - 5.704251087012835
+    - - -2.5898148103376766
+      - -5.457586841198999
+    - - 37.154807954301674
+      - -17.70798104861675
+    - - 77.64897466626918
+      - -29.908065097297357
+    - - 117.66447734084187
+      - -43.73474061621908
+  passer:
+    enabled: true
+    frame_id: agent_passer
+    asset_name: l003_car_cluster008_q9.400_sym_filled
+    speed_mps: 20.0
+    start_delay_s: 0.5
+    waypoints:
+    - - 119.92291431184897
+      - -36.06014209590622
+    - - 79.90741163727628
+      - -22.2334665769845
+    - - 39.413244925308774
+      - -10.033382528303896
+    - - -0.3313778393305784
+      - 2.2170116791138574
+    - - -41.13107368318235
+      - 13.37884960732569
+    - - -84.16806422998759
+      - 16.93793446462327
+
