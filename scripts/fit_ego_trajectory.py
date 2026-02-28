@@ -17,7 +17,6 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -25,11 +24,6 @@ from typing import Iterable
 import numpy as np
 import yaml
 from scipy.spatial import cKDTree
-
-# Ensure local imports work when run as a script from repo root or scripts/
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
 from sim.assets import load_assets
 from sim.config import SimConfig, load_config

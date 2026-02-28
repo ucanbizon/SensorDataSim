@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -34,11 +33,6 @@ from typing import Any
 import numpy as np
 import open3d as o3d
 from plyfile import PlyData
-
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
 
 # Reuse the same broad plausibility envelope as preprocessing.

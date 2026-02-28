@@ -204,17 +204,22 @@ def _validate_assets(
     meta: dict[str, Any],
     check_metadata_count: bool = True,
 ) -> None:
-    """Run asset validation checks."""
+    """Run asset validation checks. Raises ValueError on mismatch."""
     N = assets.static_points.shape[0]
 
-    assert assets.static_labels.shape == (N,)
-    assert assets.static_intensity.shape == (N,)
-    assert assets.ground_plane[2] > 0, "Ground normal not upward"
-    assert not np.any(np.isnan(assets.static_points))
+    if assets.static_labels.shape != (N,):
+        raise ValueError(f"Labels shape {assets.static_labels.shape} != expected ({N},)")
+    if assets.static_intensity.shape != (N,):
+        raise ValueError(f"Intensity shape {assets.static_intensity.shape} != expected ({N},)")
+    if assets.ground_plane[2] <= 0:
+        raise ValueError(f"Ground normal not upward: z={assets.ground_plane[2]}")
+    if np.any(np.isnan(assets.static_points)):
+        raise ValueError("NaN found in static_points")
 
     if check_metadata_count:
         expected = meta["static_scene"]["point_counts"]["after_voxel_downsample"]
-        assert N == expected, f"Scene points {N} != metadata {expected}"
+        if N != expected:
+            raise ValueError(f"Scene points {N} != metadata {expected}")
 
     extra = ""
     if assets.static_cars_fullres_points is not None:

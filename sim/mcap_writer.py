@@ -304,9 +304,9 @@ class SimWriter:
         else:
             raise ValueError(f"Unsupported compression format: {fmt}")
 
-        # Keep an explicit check here because a failed encode would otherwise
-        # write an invalid MCAP message with empty/garbage bytes.
-        assert ok, f"cv2.imencode failed for format {fmt}"
+        # A failed encode would write an invalid MCAP message with garbage bytes.
+        if not ok:
+            raise RuntimeError(f"cv2.imencode failed for format {fmt}")
 
         msg = {
             "header": {

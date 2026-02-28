@@ -14,6 +14,17 @@ This project takes a real MLS point cloud (Toronto-3D) and turns it into a repla
 
 The final output is a 15-second MCAP that can be opened directly in Foxglove. It includes TF, LiDAR, and camera data. The camera stream in the final config is compressed (`/camera/image_raw/compressed`).
 
+**Pipeline overview:**
+
+```
+Toronto-3D L002 (raw MLS point cloud)
+  → Preprocess (voxel downsample, semantic labels, car extraction)
+  → Scene composition (static scene + full-res cars + dynamic agents)
+  → Timeline (integer-tick event scheduler)
+  → LiDAR renderer (VLP-16 scatter-min) + Camera renderer (Gaussian splat)
+  → MCAP writer → Foxglove-ready output
+```
+
 ## Quick run
 
 **Environment setup** (Python 3.11, conda):
@@ -21,7 +32,7 @@ The final output is a 15-second MCAP that can be opened directly in Foxglove. It
 ```powershell
 conda create -n sensorsim python=3.11 numpy scipy numba open3d opencv-python-headless plyfile pyyaml -c conda-forge
 conda activate sensorsim
-pip install mcap mcap-ros2-support
+pip install -e .
 ```
 
 **Data**: download the preprocessed data folder from [Google Drive](https://drive.google.com/file/d/13fMaM-V49mz2RXGd4yEihV_EWt5AnqYq/view?usp=sharing) and extract it to `data/processed/`. This contains the voxel-downsampled static scene, semantic labels, intensity arrays, a full-resolution static-car subset, dynamic car assets, and preprocessing metadata. If you want to run preprocessing from scratch, put the Toronto-3D files under `data/raw/Toronto_3D/` (at minimum `L002.ply`, `Mavericks_classes_9.txt`, `Colors.xml` from [Toronto-3D](https://github.com/WeikaiTan/Toronto-3D)) and run `conda run -n sensorsim python scripts/preprocess.py`.
@@ -41,6 +52,13 @@ foxglove-studio data/processed/sim_output.mcap
 ```
 
 Foxglove notes: use `/camera/image_raw/compressed` for the image panel. For LiDAR, use `/velodyne_points` and set `Color By = intensity`.
+
+**Development / tests:**
+
+```powershell
+pip install -e ".[dev]"
+pytest
+```
 
 ## Configuration (sim.yaml)
 
@@ -168,3 +186,7 @@ The core runtime lives in `sim/`:
 ## Limitations
 
 This is a point-cloud simulation pipeline, not a full physical sensor simulator. I did not model motion blur, rolling shutter, weather, lighting changes, or complex agent behavior. Dynamic agents in the final config are based on a small car asset set (one mirrored car asset reused). These are reasonable next steps if more time is available.
+
+## Repository note
+
+After initial submission, I made a small maintenance-only update (no functional changes): replaced `assert`-based validation with explicit exceptions (`ValueError`/`RuntimeError`, works correctly under `python -O`), added `pyproject.toml` for editable install, and added unit tests for config, timeline, and transforms. The original submission state is tagged as `submission-v1`.

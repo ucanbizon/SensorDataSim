@@ -20,11 +20,11 @@ from typing import Any
 import numpy as np
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-if str(REPO_ROOT / "scripts") not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+# fit_ego_trajectory lives in scripts/ alongside this file; add to path so
+# it can be imported as a module without packaging scripts/ as a package.
+_SCRIPTS_DIR = str(Path(__file__).resolve().parent)
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 
 from sim.assets import load_assets
 from sim.config import load_config

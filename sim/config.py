@@ -92,17 +92,24 @@ class SimConfig:
 
 
 def _validate(cfg: SimConfig) -> None:
-    # Keep validation compact and close to load_config so bad YAML fails early
-    # with simple assertions instead of deeper runtime errors.
+    """Validate config values. Raises ValueError on bad input."""
     li, ca, intr = cfg.lidar_render, cfg.camera_render, cfg.camera_intrinsics
-    assert li.min_range_m > 0 and li.max_range_m > li.min_range_m
-    assert ca.min_range_m > 0 and ca.max_range_m > ca.min_range_m
-    assert ca.splat_radius_px >= 1 and ca.car_splat_radius_px >= 1
-    assert ca.image_format in ("png", "jpeg")
-    assert ca.supersample in (1, 2)
-    assert intr.width > 0 and intr.height > 0
-    assert intr.fx > 0 and intr.fy > 0
-    assert 0 <= intr.cx <= intr.width and 0 <= intr.cy <= intr.height
+    if not (li.min_range_m > 0 and li.max_range_m > li.min_range_m):
+        raise ValueError(f"Bad lidar range: min={li.min_range_m}, max={li.max_range_m}")
+    if not (ca.min_range_m > 0 and ca.max_range_m > ca.min_range_m):
+        raise ValueError(f"Bad camera range: min={ca.min_range_m}, max={ca.max_range_m}")
+    if ca.splat_radius_px < 1 or ca.car_splat_radius_px < 1:
+        raise ValueError(f"Splat radius must be >= 1: scene={ca.splat_radius_px}, car={ca.car_splat_radius_px}")
+    if ca.image_format not in ("png", "jpeg"):
+        raise ValueError(f"Unsupported image format: {ca.image_format!r}")
+    if ca.supersample not in (1, 2):
+        raise ValueError(f"Supersample must be 1 or 2, got {ca.supersample}")
+    if intr.width <= 0 or intr.height <= 0:
+        raise ValueError(f"Image dimensions must be positive: {intr.width}x{intr.height}")
+    if intr.fx <= 0 or intr.fy <= 0:
+        raise ValueError(f"Focal lengths must be positive: fx={intr.fx}, fy={intr.fy}")
+    if not (0 <= intr.cx <= intr.width and 0 <= intr.cy <= intr.height):
+        raise ValueError(f"Principal point out of bounds: cx={intr.cx}, cy={intr.cy}")
 
 
 def load_config(path: str | Path) -> SimConfig:
