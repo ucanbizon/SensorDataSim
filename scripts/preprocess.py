@@ -1291,7 +1291,7 @@ def step13_qc_report(metadata):
 
     report = "\n".join(lines) + "\n"
     report_path = OUT_DIR / "qc_report.md"
-    with open(str(report_path), "w") as f:
+    with open(str(report_path), "w", encoding="utf-8") as f:
         f.write(report)
     print(f"  Saved: {report_path}")
     print(f"  Gates: {n_pass} PASS, {n_warn} WARN, {n_fail} FAIL")
