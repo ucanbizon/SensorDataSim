@@ -1,7 +1,7 @@
 ﻿{
   "layout": {
     "direction": "row",
-    "first": "3D!avride-3d",
+    "first": "3D!ride-3d",
     "second": {
       "direction": "column",
       "first": "ImageViewPanel!camera-main",
